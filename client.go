@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"golang.org/x/exp/slices"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -84,7 +83,7 @@ func Modify[T any](ctx context.Context, method string, requestURL string, body a
 		return
 	}
 
-	data, err = ioutil.ReadAll(response.Body)
+	data, err = io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -139,7 +138,7 @@ func Get[T any](ctx context.Context, requestURL string, body any, header http.He
 		return
 	}
 
-	data, err = ioutil.ReadAll(response.Body)
+	data, err = io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
@@ -182,7 +181,7 @@ func Delete(ctx context.Context, requestURL string, header http.Header) (err err
 	}
 
 	var data []byte
-	data, err = ioutil.ReadAll(response.Body)
+	data, err = io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}
