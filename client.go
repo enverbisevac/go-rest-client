@@ -23,9 +23,9 @@ func (e Error) Error() string {
 }
 
 var (
-	ErrMethodNotAllowed         = errors.New("method not allowed")
-	ErrMarshallerFuncNotFound   = errors.New("marshaller function not found in map")
-	ErrUnmarshallerFuncNotFound = errors.New("unmarshaler function not found in map")
+	ErrMethodNotAllowed        = errors.New("method not allowed")
+	ErrMarshallerFuncNotFound  = errors.New("marshaller function not found in map")
+	ErrUnmarshalerFuncNotFound = errors.New("unmarshaler function not found in map")
 )
 
 var (
@@ -42,14 +42,16 @@ var (
 	DefaultContentType = ApplicationJSON
 )
 
-func Modify[T any](ctx context.Context, method string, requestURL string, body any,
-	header http.Header) (val T, err error) {
-
+func Modify[T any](ctx context.Context, method string, requestURL string, options ...Option) (val T, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("error in Modify: %w", err)
 		}
 	}()
+	var rd RequestData
+	for _, f := range options {
+		f(&rd)
+	}
 
 	allowedMethods := []string{http.MethodPost, http.MethodPut, http.MethodPatch}
 	method = strings.ToUpper(method)
@@ -59,7 +61,7 @@ func Modify[T any](ctx context.Context, method string, requestURL string, body a
 			allowedMethods)
 	}
 
-	data, err := marshal(body, ContentType(header.Get(Content)))
+	data, err := marshal(rd.Body, ContentType(rd.Header.Get(Content)))
 	if err != nil {
 		return
 	}
@@ -69,8 +71,8 @@ func Modify[T any](ctx context.Context, method string, requestURL string, body a
 		return
 	}
 
-	if header != nil {
-		request.Header = header
+	if rd.Header != nil {
+		request.Header = rd.Header
 	}
 
 	response, err := http.DefaultClient.Do(request)
@@ -102,18 +104,23 @@ func Modify[T any](ctx context.Context, method string, requestURL string, body a
 	return
 }
 
-func Get[T any](ctx context.Context, requestURL string, body any, header http.Header) (result T, err error) {
-	var reader io.Reader
-	var data []byte
-
+func Get[T any](ctx context.Context, requestURL string, options ...Option) (result T, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("error in Get: %w", err)
 		}
 	}()
 
-	if body != nil {
-		data, err = marshal(body, ContentType(header.Get(Content)))
+	var reader io.Reader
+	var data []byte
+
+	var rd RequestData
+	for _, f := range options {
+		f(&rd)
+	}
+
+	if rd.Body != nil {
+		data, err = marshal(rd.Body, ContentType(rd.Header.Get(Content)))
 		if err != nil {
 			return
 		}
@@ -125,7 +132,7 @@ func Get[T any](ctx context.Context, requestURL string, body any, header http.He
 		return
 	}
 
-	req.Header = header
+	req.Header = rd.Header
 
 	response, err := http.DefaultClient.Do(req)
 	if response != nil {
@@ -154,12 +161,17 @@ func Get[T any](ctx context.Context, requestURL string, body any, header http.He
 	return
 }
 
-func Delete(ctx context.Context, requestURL string, header http.Header) (err error) {
+func Delete(ctx context.Context, requestURL string, options ...Option) (err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("error in Delete: %w", err)
 		}
 	}()
+
+	var rd RequestData
+	for _, f := range options {
+		f(&rd)
+	}
 
 	var req *http.Request
 	req, err = http.NewRequestWithContext(ctx, http.MethodDelete, requestURL, nil)
@@ -167,7 +179,7 @@ func Delete(ctx context.Context, requestURL string, header http.Header) (err err
 		return
 	}
 
-	req.Header = header
+	req.Header = rd.Header
 
 	response, err := http.DefaultClient.Do(req)
 	if response != nil {
@@ -213,7 +225,7 @@ func unmarshal(data []byte, object any, content ContentType) error {
 	}
 	f, ok := Unmarshaler[content]
 	if !ok {
-		return ErrUnmarshallerFuncNotFound
+		return ErrUnmarshalerFuncNotFound
 	}
 	return f(data, object)
 }

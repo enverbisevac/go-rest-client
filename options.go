@@ -2,60 +2,21 @@ package rest
 
 import "net/http"
 
-const (
-	Content       = "Content-Type"
-	Authorization = "Authorization"
-)
-
-type ContentType string
-
-func (t ContentType) String() string {
-	return string(t)
+type RequestData struct {
+	Body   any
+	Header http.Header
 }
 
-const (
-	ApplicationJSON ContentType = "application/json"
-	ApplicationXML  ContentType = "application/xml"
-)
+type Option func(r *RequestData)
 
-type AuthType string
-
-const (
-	Bearer AuthType = "Bearer"
-)
-
-type Func func(headers http.Header)
-
-func Header(opts ...Func) http.Header {
-	h := http.Header{}
-	for _, f := range opts {
-		f(h)
-	}
-	return h
-}
-
-func WithHeader(header http.Header) Func {
-	return func(h http.Header) {
-		for key, value := range header {
-			h[key] = value
-		}
+func WithBody(body any) Option {
+	return func(r *RequestData) {
+		r.Body = body
 	}
 }
 
-func WithAuth(auth AuthType, token string) Func {
-	return func(headers http.Header) {
-		headers[Authorization] = []string{string(auth) + " " + token}
-	}
-}
-
-func WithContent(value ContentType) Func {
-	return func(headers http.Header) {
-		headers[Content] = []string{string(value)}
-	}
-}
-
-func With(name string, value ...string) Func {
-	return func(headers http.Header) {
-		headers[name] = value
+func WithHeaders(header http.Header) Option {
+	return func(r *RequestData) {
+		r.Header = header
 	}
 }

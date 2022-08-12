@@ -38,7 +38,7 @@ func TestGet(t *testing.T) {
 	// Close the server when test finishes
 	defer server.Close()
 
-	art, err := Get[article](context.Background(), server.URL+"/resource/article/1", nil, Header())
+	art, err := Get[article](context.Background(), server.URL+"/resource/article/1")
 	ok(t, err)
 	equals(t, title, art.Title)
 }
@@ -52,7 +52,7 @@ func TestGetWrongUrl(t *testing.T) {
 	// Close the server when test finishes
 	defer server.Close()
 
-	_, err := Get[article](context.Background(), server.URL+"/resource/article/1", nil, Header())
+	_, err := Get[article](context.Background(), server.URL+"/resource/article/1")
 	var httpError Error
 	ok := errors.As(err, &httpError)
 	assert(t, ok && httpError.StatusCode == http.StatusNotFound, "Expected "+err.Error())
@@ -69,7 +69,7 @@ func TestDelete(t *testing.T) {
 	// Close the server when test finishes
 	defer server.Close()
 
-	err := Delete(context.Background(), server.URL+"/resource/article/1", Header())
+	err := Delete(context.Background(), server.URL+"/resource/article/1")
 	ok(t, err)
 }
 
@@ -82,7 +82,7 @@ func TestDeleteWrongUrl(t *testing.T) {
 	// Close the server when test finishes
 	defer server.Close()
 
-	err := Delete(context.Background(), server.URL+"/resource/article/1", Header())
+	err := Delete(context.Background(), server.URL+"/resource/article/1")
 	var httpError Error
 	ok := errors.As(err, &httpError)
 	assert(t, ok && httpError.StatusCode == http.StatusNotFound, "Expected "+err.Error())
