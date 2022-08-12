@@ -30,14 +30,14 @@ var (
 )
 
 var (
-	Marshaller = map[string]func(v any) ([]byte, error){
-		ApplicationJSON.String(): json.Marshal,
-		ApplicationXML.String():  xml.Marshal,
+	Marshaller = map[ContentType]func(v any) ([]byte, error){
+		ApplicationJSON: json.Marshal,
+		ApplicationXML:  xml.Marshal,
 	}
 
-	Unmarshaler = map[string]func(data []byte, v any) error{
-		ApplicationJSON.String(): json.Unmarshal,
-		ApplicationXML.String():  xml.Unmarshal,
+	Unmarshaler = map[ContentType]func(data []byte, v any) error{
+		ApplicationJSON: json.Unmarshal,
+		ApplicationXML:  xml.Unmarshal,
 	}
 
 	DefaultContentType = ApplicationJSON
@@ -201,7 +201,7 @@ func marshal(object any, content ContentType) ([]byte, error) {
 	if content == "" {
 		content = DefaultContentType
 	}
-	f, ok := Marshaller[content.String()]
+	f, ok := Marshaller[content]
 	if !ok {
 		return []byte{}, ErrMarshallerFuncNotFound
 	}
@@ -212,7 +212,7 @@ func unmarshal(data []byte, object any, content ContentType) error {
 	if content == "" {
 		content = DefaultContentType
 	}
-	f, ok := Unmarshaler[content.String()]
+	f, ok := Unmarshaler[content]
 	if !ok {
 		return ErrUnmarshallerFuncNotFound
 	}
