@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/github/enverbisevac/go-rest-client/badge.svg)](https://coveralls.io/github/enverbisevac/go-rest-client)
 # Go REST client library
 Simple Go REST client library using generics. Minimum golang version requirement is 1.18
 
