@@ -16,27 +16,80 @@ First import dependency:
 import "github.com/enverbisevac/go-rest-client"
 ```
 
-Library provide three basic free functions: Modify, Get and Delete. If you want to retrieve data just use
+You can access package functions with `rest` or if you like aliased imports then use alias.
+Library provide three basic top level functions: Modify, Get and Delete.
 ```go
-type Article struct {
-   Title string `json:"title"`
-   Body  string `json:"body"`
-}
-
-article, err := Get[Article](context.Background(), "your resource url")
+func Modify[T any](ctx context.Context, method string, requestURL string, options ...Option) (val T, err error)
+func Get[T any](ctx context.Context, requestURL string, options ...Option) (result T, err error)
+func Delete(ctx context.Context, requestURL string, options ...Option) (err error)
 ```
 
-For creating or modifying resource:
+Available options:
+```go
+func WithBody(body any) Option
+func WithHeaders(header http.Header) Option
+```
+
+Simple GET request example:
 ```go
 type Article struct {
    Title string `json:"title"`
    Body  string `json:"body"`
 }
 
+article, err := rest.Get[Article](context.Background(), "your resource url")
+```
+
+For creating or modifying resource (POST, PUT, PATCH):
+```go
 article := Article{
 	Title: "some title",
 	Body: "some body"
 }
 
-res, err := Modify[Article](context.Background(), http.MethodPost, "your resource url", rest.WithBody(&article))
+res, err := rest.Modify[Article](context.Background(), http.MethodPost, "your resource url", rest.WithBody(&article))
+```
+
+Delete a resource example:
+```go
+article, err := rest.Delete(context.Background(), "your resource url")
+```
+
+if you need to provide custom headers or body for any of the functions (get resource example):
+```go
+article, err := rest.Get[Article](context.Background(), "your resource url", 
+	rest.WithHeaders(http.Header{
+	    // custom headers 
+	})
+)
+```
+
+or modify a resource:
+```go
+res, err := rest.Modify[Article](context.Background(), http.MethodPost, "your resource url", 
+	rest.WithBody(&article), rest.WithHeaders(... some header))
+```
+
+there is also helper function for creating headers:
+```go
+func Header(opts ...Func) http.Header
+```
+
+and option functions:
+```go
+func WithHeader(header http.Header) Func
+func WithAuth(auth AuthType, token string) Func
+func WithContent(value ContentType) Func
+func With(name string, value ...string) Func
+```
+
+for example:
+```go
+res, err := rest.Modify[Article](context.Background(), http.MethodPost, "your resource url", 
+	rest.WithBody(&article), rest.WithHeaders(
+		rest.Headers(
+			rest.WithAuth("Bearer", key),
+		),
+	),
+)
 ```

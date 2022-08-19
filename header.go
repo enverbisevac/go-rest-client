@@ -14,6 +14,7 @@ func (t ContentType) String() string {
 }
 
 const (
+	TextPlain       ContentType = "text/plain"
 	ApplicationJSON ContentType = "application/json"
 	ApplicationXML  ContentType = "application/xml"
 )

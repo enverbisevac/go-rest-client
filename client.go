@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// Error is custom type for displaying information like status and body of the response message
 type Error struct {
 	StatusCode int
 	Message    string
@@ -23,32 +24,41 @@ func (e Error) Error() string {
 }
 
 var (
-	ErrMethodNotAllowed        = errors.New("method not allowed")
-	ErrMarshallerFuncNotFound  = errors.New("marshaller function not found in map")
+	// ErrMethodNotAllowed ...
+	ErrMethodNotAllowed = errors.New("method not allowed")
+	// ErrMarshallerFuncNotFound ...
+	ErrMarshallerFuncNotFound = errors.New("marshaller function not found in map")
+	// ErrUnmarshalerFuncNotFound ...
 	ErrUnmarshalerFuncNotFound = errors.New("unmarshaler function not found in map")
 )
 
 var (
+	// Marshaller maps some basic content types with top level encoding functions from stdlib
 	Marshaller = map[ContentType]func(v any) ([]byte, error){
 		ApplicationJSON: json.Marshal,
 		ApplicationXML:  xml.Marshal,
 	}
 
+	// Unmarshaler maps some basic content types with top level decoding functions from stdlib
 	Unmarshaler = map[ContentType]func(data []byte, v any) error{
 		ApplicationJSON: json.Unmarshal,
 		ApplicationXML:  xml.Unmarshal,
 	}
 
+	// DefaultContentType will be used if no content type specified in headers
 	DefaultContentType = ApplicationJSON
 )
 
+// Modify resource on requestURL with options WithBody, WithHeaders and return T
+// method can be POST, PUT, DELETE
+// if error occurred T will be zero value
 func Modify[T any](ctx context.Context, method string, requestURL string, options ...Option) (val T, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("error in Modify: %w", err)
 		}
 	}()
-	var rd RequestData
+	var rd requestData
 	for _, f := range options {
 		f(&rd)
 	}
@@ -104,6 +114,8 @@ func Modify[T any](ctx context.Context, method string, requestURL string, option
 	return
 }
 
+// Get resource T from requestedURL with options: WithBody, WithHeaders
+// if error occurred T will be zero value
 func Get[T any](ctx context.Context, requestURL string, options ...Option) (result T, err error) {
 	defer func() {
 		if err != nil {
@@ -114,7 +126,7 @@ func Get[T any](ctx context.Context, requestURL string, options ...Option) (resu
 	var reader io.Reader
 	var data []byte
 
-	var rd RequestData
+	var rd requestData
 	for _, f := range options {
 		f(&rd)
 	}
@@ -161,6 +173,8 @@ func Get[T any](ctx context.Context, requestURL string, options ...Option) (resu
 	return
 }
 
+// Delete resource from requestedURL with options WithBody, WithHeaders
+// if error occurred T will be zero value
 func Delete(ctx context.Context, requestURL string, options ...Option) (err error) {
 	defer func() {
 		if err != nil {
@@ -168,7 +182,7 @@ func Delete(ctx context.Context, requestURL string, options ...Option) (err erro
 		}
 	}()
 
-	var rd RequestData
+	var rd requestData
 	for _, f := range options {
 		f(&rd)
 	}
