@@ -77,10 +77,10 @@ func Header(opts ...Func) http.Header
 
 and option functions:
 ```go
-func WithHeader(header http.Header) Func
-func WithAuth(auth AuthType, token string) Func
-func WithContent(value ContentType) Func
-func With(name string, value ...string) Func
+func WithHeader(header http.Header) HeaderOption
+func WithAuth(auth AuthType, token string) HeaderOption
+func WithContent(value ContentType) HeaderOption
+func With(name string, value ...string) HeaderOption
 ```
 
 for example:
@@ -88,7 +88,7 @@ for example:
 res, err := rest.Modify[Article](context.Background(), http.MethodPost, "your resource url", 
 	rest.WithBody(&article), rest.WithHeaders(
 		rest.Headers(
-			rest.WithAuth("Bearer", key),
+			rest.WithAuth(rest.Bearer, key),
 		),
 	),
 )

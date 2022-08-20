@@ -186,3 +186,43 @@ func Test_unmarshal(t *testing.T) {
 		})
 	}
 }
+
+func Test_getContentType(t *testing.T) {
+	type args struct {
+		content ContentType
+	}
+	tests := []struct {
+		name string
+		args args
+		want ContentType
+	}{
+		{
+			name: "test simple content type signature",
+			args: args{
+				content: ApplicationJSON,
+			},
+			want: ApplicationJSON,
+		},
+		{
+			name: "test empty content type",
+			args: args{
+				content: "",
+			},
+			want: "",
+		},
+		{
+			name: "test with charset",
+			args: args{
+				content: ApplicationJSON + "; charset=utf8",
+			},
+			want: ApplicationJSON,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getContentType(tt.args.content); got != tt.want {
+				t.Errorf("getContentType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

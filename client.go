@@ -226,6 +226,7 @@ func marshal(object any, content ContentType) ([]byte, error) {
 	if content == "" {
 		content = DefaultContentType
 	}
+	content = getContentType(content)
 	f, ok := Marshaller[content]
 	if !ok {
 		return []byte{}, ErrMarshallerFuncNotFound
@@ -237,9 +238,15 @@ func unmarshal(data []byte, object any, content ContentType) error {
 	if content == "" {
 		content = DefaultContentType
 	}
+	content = getContentType(content)
 	f, ok := Unmarshaler[content]
 	if !ok {
 		return ErrUnmarshalerFuncNotFound
 	}
 	return f(data, object)
+}
+
+func getContentType(content ContentType) ContentType {
+	parts := strings.Split(string(content), ";")
+	return ContentType(strings.TrimSpace(parts[0]))
 }

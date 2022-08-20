@@ -25,9 +25,9 @@ const (
 	Bearer AuthType = "Bearer"
 )
 
-type Func func(headers http.Header)
+type HeaderOption func(headers http.Header)
 
-func Header(opts ...Func) http.Header {
+func Header(opts ...HeaderOption) http.Header {
 	h := http.Header{}
 	for _, f := range opts {
 		f(h)
@@ -35,7 +35,7 @@ func Header(opts ...Func) http.Header {
 	return h
 }
 
-func WithHeader(header http.Header) Func {
+func WithHeader(header http.Header) HeaderOption {
 	return func(h http.Header) {
 		for key, value := range header {
 			h[key] = value
@@ -43,19 +43,19 @@ func WithHeader(header http.Header) Func {
 	}
 }
 
-func WithAuth(auth AuthType, token string) Func {
+func WithAuth(auth AuthType, token string) HeaderOption {
 	return func(headers http.Header) {
 		headers[Authorization] = []string{string(auth) + " " + token}
 	}
 }
 
-func WithContent(value ContentType) Func {
+func WithContent(value ContentType) HeaderOption {
 	return func(headers http.Header) {
 		headers[Content] = []string{string(value)}
 	}
 }
 
-func With(name string, value ...string) Func {
+func With(name string, value ...string) HeaderOption {
 	return func(headers http.Header) {
 		headers[name] = value
 	}

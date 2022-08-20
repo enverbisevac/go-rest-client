@@ -57,7 +57,7 @@ func TestWith(t *testing.T) {
 
 func TestHeader(t *testing.T) {
 	type args struct {
-		opts []Func
+		opts []HeaderOption
 	}
 	tests := []struct {
 		name string
