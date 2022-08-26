@@ -12,7 +12,33 @@ import (
 
 type article struct {
 	Title string `json:"title"`
-	Body  string `json:"body"`
+	Body  string `json:"Body"`
+}
+
+func TestGetMarshallingError(t *testing.T) {
+	// Start a local HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {}))
+	// Close the server when test finishes
+	defer server.Close()
+
+	_, err := Get[article](context.Background(), server.URL+"/resource/article/1")
+	assert(t, err != nil, "error: 'unexpected end of JSON input' expected")
+}
+
+func TestGetUnmarshallingError(t *testing.T) {
+	// Start a local HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		// Test request parameters
+		equals(t, req.URL.String(), "/resource/article/1")
+		// Send response to be tested
+		rw.Header().Set(Content, ApplicationJSON.String())
+		_, _ = rw.Write([]byte("{"))
+	}))
+	// Close the server when test finishes
+	defer server.Close()
+
+	_, err := Get[article](context.Background(), server.URL+"/resource/article/1")
+	assert(t, err != nil, "error: 'unexpected end of JSON input' expected")
 }
 
 func TestGet(t *testing.T) {
@@ -38,7 +64,14 @@ func TestGet(t *testing.T) {
 	// Close the server when test finishes
 	defer server.Close()
 
-	art, err := Get[article](context.Background(), server.URL+"/resource/article/1")
+	art, err := Get[article](context.Background(), server.URL+"/resource/article/1",
+		WithHeaders(Header(WithContent(ApplicationJSON))),
+		WithBody(struct {
+			Name string
+		}{
+			Name: "Test",
+		}),
+	)
 	ok(t, err)
 	equals(t, title, art.Title)
 }
@@ -100,7 +133,7 @@ func Test_marshal(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test json marshaller - happy path",
+			name: "test json Marshaller - happy path",
 			args: args{
 				object:  []string{"enver", "bisevac"},
 				content: ApplicationJSON,
@@ -108,7 +141,7 @@ func Test_marshal(t *testing.T) {
 			want: []byte("[\"enver\",\"bisevac\"]"),
 		},
 		{
-			name: "test xml marshaller - happy path",
+			name: "test xml Marshaller - happy path",
 			args: args{
 				object:  []string{"enver", "bisevac"},
 				content: ApplicationXML,
@@ -123,6 +156,14 @@ func Test_marshal(t *testing.T) {
 			},
 			want:    []byte{},
 			wantErr: true,
+		},
+		{
+			name: "empty content type",
+			args: args{
+				object:  []string{"enver", "bisevac"},
+				content: "",
+			},
+			want: []byte("[\"enver\",\"bisevac\"]"),
 		},
 	}
 	for _, tt := range tests {
@@ -176,6 +217,14 @@ func Test_unmarshal(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "empty content type",
+			args: args{
+				data:    []byte("[\"enver\",\"bisevac\"]"),
+				object:  &s,
+				content: "",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -220,8 +269,8 @@ func Test_getContentType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getContentType(tt.args.content); got != tt.want {
-				t.Errorf("getContentType() = %v, want %v", got, tt.want)
+			if got := parseContentType(tt.args.content); got != tt.want {
+				t.Errorf("parseContentType() = %v, want %v", got, tt.want)
 			}
 		})
 	}

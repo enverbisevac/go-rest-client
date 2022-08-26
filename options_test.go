@@ -11,7 +11,7 @@ func TestWithBody(t *testing.T) {
 	}{
 		Title: "Some title",
 	}
-	base := requestData{}
+	base := RequestData{}
 
 	got := WithBody(s)
 	got(&base)
@@ -20,7 +20,7 @@ func TestWithBody(t *testing.T) {
 }
 
 func TestWithHeaders(t *testing.T) {
-	base := requestData{}
+	base := RequestData{}
 
 	input := http.Header{
 		Content: []string{string(ApplicationJSON)},
