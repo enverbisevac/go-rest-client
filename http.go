@@ -30,14 +30,14 @@ func NewHttp(client Doer) Http {
 func (h *Http) Request(ctx context.Context, method string, requestURL string, body []byte,
 	header http.Header) (*Response, error) {
 
-	request, err := http.NewRequestWithContext(ctx, method, requestURL, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 
-	request.Header = header
+	req.Header = header
 
-	response, err := h.Client.Do(request)
+	response, err := h.Client.Do(req)
 	if response != nil {
 		defer func(rc io.ReadCloser) {
 			_ = rc.Close()

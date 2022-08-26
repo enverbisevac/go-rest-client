@@ -56,7 +56,7 @@ func request[T any](ctx context.Context, cfg *config, options ...Option) (T, err
 		}
 	}
 
-	if len(data) > 0 {
+	if len(response.Body) > 0 {
 		err = rd.Decode(response.Body, &val)
 	}
 
