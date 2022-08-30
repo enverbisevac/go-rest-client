@@ -35,13 +35,13 @@ var (
 
 var (
 	// Marshaller maps some basic content types with top level encoding functions from stdlib
-	Marshaller = EncodeRegistry{
+	Marshaller = EncoderRegistry{
 		ApplicationJSON: json.Marshal,
 		ApplicationXML:  xml.Marshal,
 	}
 
 	// Unmarshaler maps some basic content types with top level decoding functions from stdlib
-	Unmarshaler = DecodeRegistry{
+	Unmarshaler = DecoderRegistry{
 		ApplicationJSON: json.Unmarshal,
 		ApplicationXML:  xml.Unmarshal,
 	}
@@ -49,7 +49,10 @@ var (
 	// DefaultContentType will be used if no content type specified in headers
 	DefaultContentType = ApplicationJSON
 
-	DefaultHttp = NewHttp(http.DefaultClient)
+	DefaultHttp = &Http{
+		Client:         http.DefaultClient,
+		RequestWrapper: &RequestWrapper{},
+	}
 )
 
 // Modify resource on requestURL with options WithBody, WithHeaders and return T
@@ -65,35 +68,47 @@ func Modify[T any](ctx context.Context, method string, requestURL string, option
 			allowedMethods)
 	}
 
-	return request[T](ctx, &config{
+	return request[T](ctx, &config[T]{
 		method:     method,
 		requestURL: requestURL,
-		requester:  &DefaultHttp,
-		encoder:    Marshaller,
-		decoder:    Unmarshaler,
+		requester:  DefaultHttp,
+		encoder: Encoder{
+			Registry: Marshaller,
+		},
+		decoder: Decoder[T]{
+			Registry: Unmarshaler,
+		},
 	}, options...)
 }
 
 // Get resource T from requestedURL with options: WithBody, WithHeaders
 // if error occurred T will be zero value
 func Get[T any](ctx context.Context, requestURL string, options ...Option) (T, error) {
-	return request[T](ctx, &config{
+	return request[T](ctx, &config[T]{
 		method:     http.MethodGet,
 		requestURL: requestURL,
-		requester:  &DefaultHttp,
-		encoder:    Marshaller,
-		decoder:    Unmarshaler,
+		requester:  DefaultHttp,
+		encoder: Encoder{
+			Registry: Marshaller,
+		},
+		decoder: Decoder[T]{
+			Registry: Unmarshaler,
+		},
 	}, options...)
 }
 
 // Delete resource from requestedURL with options WithBody, WithHeaders
 // if error occurred T will be zero value
 func Delete[T any](ctx context.Context, requestURL string, options ...Option) (T, error) {
-	return request[T](ctx, &config{
+	return request[T](ctx, &config[T]{
 		method:     http.MethodDelete,
 		requestURL: requestURL,
-		requester:  &DefaultHttp,
-		encoder:    Marshaller,
-		decoder:    Unmarshaler,
+		requester:  DefaultHttp,
+		encoder: Encoder{
+			Registry: Marshaller,
+		},
+		decoder: Decoder[T]{
+			Registry: Unmarshaler,
+		},
 	}, options...)
 }

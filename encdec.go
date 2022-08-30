@@ -4,9 +4,12 @@ type Parser interface {
 	Parse() ContentType
 }
 
-type EncodeRegistry map[ContentType]MarshallFunc
+type EncoderRegistry map[ContentType]MarshallFunc
 
-func (r EncodeRegistry) Encode(object any, content Parser) ([]byte, error) {
+func (r EncoderRegistry) Encode(object any, content Parser) ([]byte, error) {
+	if object == nil {
+		return nil, nil
+	}
 	f, ok := r[content.Parse()]
 	if !ok {
 		return []byte{}, ErrMarshallerFuncNotFound
@@ -14,21 +17,21 @@ func (r EncodeRegistry) Encode(object any, content Parser) ([]byte, error) {
 	return f(object)
 }
 
-func (r EncodeRegistry) Set(contentType ContentType, f MarshallFunc) {
+func (r EncoderRegistry) Set(contentType ContentType, f MarshallFunc) {
 	r[contentType] = f
 }
 
-func (r EncodeRegistry) Clone() EncodeRegistry {
-	result := make(EncodeRegistry, len(r))
+func (r EncoderRegistry) Clone() EncoderRegistry {
+	result := make(EncoderRegistry, len(r))
 	for k, v := range r {
 		result[k] = v
 	}
 	return result
 }
 
-type DecodeRegistry map[ContentType]UnmarshallFunc
+type DecoderRegistry map[ContentType]UnmarshallFunc
 
-func (r DecodeRegistry) Decode(data []byte, object any, content Parser) error {
+func (r DecoderRegistry) Decode(data []byte, object any, content Parser) error {
 	f, ok := r[content.Parse()]
 	if !ok {
 		return ErrUnmarshalerFuncNotFound
@@ -36,14 +39,55 @@ func (r DecodeRegistry) Decode(data []byte, object any, content Parser) error {
 	return f(data, object)
 }
 
-func (r DecodeRegistry) Set(contentType ContentType, f UnmarshallFunc) {
+func (r DecoderRegistry) Set(contentType ContentType, f UnmarshallFunc) {
 	r[contentType] = f
 }
 
-func (r DecodeRegistry) Clone() DecodeRegistry {
-	result := make(DecodeRegistry, len(r))
+func (r DecoderRegistry) Clone() DecoderRegistry {
+	result := make(DecoderRegistry, len(r))
 	for k, v := range r {
 		result[k] = v
 	}
 	return result
+}
+
+type Encoder struct {
+	Registry interface {
+		Encode(object any, content Parser) ([]byte, error)
+		Set(contentType ContentType, f MarshallFunc)
+		Clone() EncoderRegistry
+	}
+}
+
+func (e Encoder) Encode(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+	registry := e.Registry
+	if marshalFunc != nil {
+		registry = registry.Clone()
+		registry.Set(contentType, marshalFunc)
+	}
+	return registry.Encode(value, contentType)
+}
+
+type Decoder[T any] struct {
+	Registry interface {
+		Decode(data []byte, object any, content Parser) error
+		Set(contentType ContentType, f UnmarshallFunc)
+		Clone() DecoderRegistry
+	}
+}
+
+func (d Decoder[T]) Decode(data []byte, val *T, contentType ContentType, unmarshallFunc UnmarshallFunc) error {
+	plain := string(data)
+	switch any(val).(type) {
+	case *string:
+		*val = *any(&plain).(*T)
+	default:
+		registry := d.Registry
+		if unmarshallFunc != nil {
+			registry = registry.Clone()
+			registry.Set(contentType, unmarshallFunc)
+		}
+		return d.Registry.Decode(data, val, contentType)
+	}
+	return nil
 }

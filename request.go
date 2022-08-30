@@ -5,41 +5,30 @@ import (
 	"net/http"
 )
 
-type Encoder interface {
-	Encode(object any, content Parser) ([]byte, error)
-	Set(contentType ContentType, marshallFunc MarshallFunc)
-	Clone() EncodeRegistry
-}
-
-type Decoder interface {
-	Decode(data []byte, object any, content Parser) error
-	Set(contentType ContentType, unmarshaler UnmarshallFunc)
-	Clone() DecodeRegistry
-}
-
-type Requester interface {
-	Request(ctx context.Context, method string, requestURL string, body []byte, header http.Header) (*Response, error)
-}
-
-type config struct {
+type config[T any] struct {
 	method     string
 	requestURL string
-	requester  Requester
-	encoder    Encoder
-	decoder    Decoder
+	requester  interface {
+		Request(ctx context.Context, method string, requestURL string, body []byte,
+			header http.Header) (*Response, error)
+	}
+	encoder interface {
+		Encode(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error)
+	}
+	decoder interface {
+		Decode(data []byte, val *T, contentType ContentType, unmarshallFunc UnmarshallFunc) error
+	}
 }
 
-func request[T any](ctx context.Context, cfg *config, options ...Option) (T, error) {
-	var val T
-	rd := RequestData[T]{
-		encoder: cfg.encoder,
-		decoder: cfg.decoder,
-	}
+func request[T any](ctx context.Context, cfg *config[T], options ...Option) (T, error) {
+	rd := RequestOption{}
 	for _, f := range options {
-		f((*RequestData[any])(&rd))
+		f(&rd)
 	}
 
-	data, err := rd.Encode()
+	var val T
+
+	data, err := cfg.encoder.Encode(rd.Body, ContentType(rd.Header.Get(Content)), rd.MarshalFunc)
 	if err != nil {
 		return val, err
 	}
@@ -57,7 +46,7 @@ func request[T any](ctx context.Context, cfg *config, options ...Option) (T, err
 	}
 
 	if len(response.Body) > 0 {
-		err = rd.Decode(response.Body, &val)
+		err = cfg.decoder.Decode(response.Body, &val, ContentType(response.Header.Get(Content)), rd.UnmarshallFunc)
 	}
 
 	return val, err

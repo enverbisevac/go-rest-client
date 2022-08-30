@@ -9,41 +9,19 @@ import (
 )
 
 type mockEncoder struct {
-	content []byte
-	err     error
+	EncodeFunc func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error)
 }
 
-func (m *mockEncoder) Encode(object any, content Parser) ([]byte, error) {
-	return m.content, m.err
+func (m *mockEncoder) Encode(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+	return m.EncodeFunc(value, contentType, marshalFunc)
 }
 
-func (m *mockEncoder) Set(contentType ContentType, marshallFunc MarshallFunc) {
-
+type mockDecoder[T any] struct {
+	DecodeFunc func(data []byte, val *T, contentType ContentType, unmarshallFunc UnmarshallFunc) error
 }
 
-func (m *mockEncoder) Clone() EncodeRegistry {
-	return EncodeRegistry{}
-}
-
-type mockDecoder struct {
-	object any
-	err    error
-}
-
-func (m *mockDecoder) Decode(data []byte, object any, content Parser) error {
-	if m.object != nil {
-		value := reflect.ValueOf(m.object)
-		reflect.ValueOf(object).Elem().Set(value)
-	}
-	return m.err
-}
-
-func (m *mockDecoder) Set(contentType ContentType, unmarshaler UnmarshallFunc) {
-
-}
-
-func (m *mockDecoder) Clone() DecodeRegistry {
-	return DecodeRegistry{}
+func (m *mockDecoder[T]) Decode(data []byte, val *T, contentType ContentType, unmarshallFunc UnmarshallFunc) error {
+	return m.DecodeFunc(data, val, contentType, unmarshallFunc)
 }
 
 type mockRequest struct {
@@ -65,7 +43,7 @@ func Test_request(t *testing.T) {
 
 	type args struct {
 		ctx     context.Context
-		cfg     *config
+		cfg     *config[mockArticle]
 		options []Option
 	}
 	tests := []struct {
@@ -78,7 +56,7 @@ func Test_request(t *testing.T) {
 			name: "options test",
 			args: args{
 				ctx: context.Background(),
-				cfg: &config{
+				cfg: &config[mockArticle]{
 					method:     http.MethodGet,
 					requestURL: "",
 					requester: &mockRequest{
@@ -89,8 +67,17 @@ func Test_request(t *testing.T) {
 						},
 						err: nil,
 					},
-					encoder: &mockEncoder{},
-					decoder: &mockDecoder{},
+					encoder: &mockEncoder{
+						func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+							return []byte("{}"), nil
+						},
+					},
+					decoder: &mockDecoder[mockArticle]{
+						DecodeFunc: func(data []byte, val *mockArticle, contentType ContentType, unmarshallFunc UnmarshallFunc) error {
+
+							return nil
+						},
+					},
 				},
 				options: []Option{WithHeaders(Header(WithContent(ApplicationJSON)))},
 			},
@@ -101,12 +88,14 @@ func Test_request(t *testing.T) {
 			name: "encode error",
 			args: args{
 				ctx: context.Background(),
-				cfg: &config{
+				cfg: &config[mockArticle]{
 					method:     http.MethodGet,
 					requestURL: "",
 					requester:  nil,
 					encoder: &mockEncoder{
-						err: errors.New("encoding error"),
+						EncodeFunc: func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+							return nil, errors.New("encoding error")
+						},
 					},
 					decoder: nil,
 				},
@@ -119,14 +108,18 @@ func Test_request(t *testing.T) {
 			name: "request return error",
 			args: args{
 				ctx: context.Background(),
-				cfg: &config{
+				cfg: &config[mockArticle]{
 					method:     http.MethodGet,
 					requestURL: "",
 					requester: &mockRequest{
 						err: errors.New("request failed"),
 					},
-					encoder: &mockEncoder{},
-					decoder: &mockDecoder{},
+					encoder: &mockEncoder{
+						EncodeFunc: func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+							return nil, nil
+						},
+					},
+					decoder: &mockDecoder[mockArticle]{},
 				},
 				options: nil,
 			},
@@ -137,7 +130,7 @@ func Test_request(t *testing.T) {
 			name: "bad request",
 			args: args{
 				ctx: context.Background(),
-				cfg: &config{
+				cfg: &config[mockArticle]{
 					method:     http.MethodGet,
 					requestURL: "",
 					requester: &mockRequest{
@@ -147,8 +140,12 @@ func Test_request(t *testing.T) {
 						},
 						err: nil,
 					},
-					encoder: &mockEncoder{},
-					decoder: &mockDecoder{},
+					encoder: &mockEncoder{
+						EncodeFunc: func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+							return nil, nil
+						},
+					},
+					decoder: &mockDecoder[mockArticle]{},
 				},
 				options: []Option{WithHeaders(Header(WithContent(ApplicationJSON)))},
 			},
@@ -159,7 +156,7 @@ func Test_request(t *testing.T) {
 			name: "decode error",
 			args: args{
 				ctx: context.Background(),
-				cfg: &config{
+				cfg: &config[mockArticle]{
 					method:     http.MethodGet,
 					requestURL: "",
 					requester: &mockRequest{
@@ -169,9 +166,15 @@ func Test_request(t *testing.T) {
 							Header:     Header(WithContent(ApplicationJSON)),
 						},
 					},
-					encoder: &mockEncoder{},
-					decoder: &mockDecoder{
-						err: errors.New("decoding error"),
+					encoder: &mockEncoder{
+						EncodeFunc: func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+							return nil, nil
+						},
+					},
+					decoder: &mockDecoder[mockArticle]{
+						DecodeFunc: func(data []byte, val *mockArticle, contentType ContentType, unmarshallFunc UnmarshallFunc) error {
+							return errors.New("decoding error")
+						},
 					},
 				},
 				options: nil,
@@ -183,7 +186,7 @@ func Test_request(t *testing.T) {
 			name: "happy path",
 			args: args{
 				ctx: context.Background(),
-				cfg: &config{
+				cfg: &config[mockArticle]{
 					method:     http.MethodGet,
 					requestURL: "",
 					requester: &mockRequest{
@@ -194,9 +197,16 @@ func Test_request(t *testing.T) {
 						},
 						err: nil,
 					},
-					encoder: &mockEncoder{},
-					decoder: &mockDecoder{
-						object: article,
+					encoder: &mockEncoder{
+						EncodeFunc: func(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error) {
+							return nil, nil
+						},
+					},
+					decoder: &mockDecoder[mockArticle]{
+						DecodeFunc: func(data []byte, val *mockArticle, contentType ContentType, unmarshallFunc UnmarshallFunc) error {
+							*val = article
+							return nil
+						},
 					},
 				},
 			},

@@ -9,15 +9,15 @@ import (
 func TestDecodeRegistry_Clone(t *testing.T) {
 	tests := []struct {
 		name string
-		r    DecodeRegistry
-		want DecodeRegistry
+		r    DecoderRegistry
+		want DecoderRegistry
 	}{
 		{
 			name: "happy path",
-			r: DecodeRegistry{
+			r: DecoderRegistry{
 				ApplicationJSON: json.Unmarshal,
 			},
-			want: DecodeRegistry{
+			want: DecoderRegistry{
 				ApplicationJSON: json.Unmarshal,
 			},
 		},
@@ -39,7 +39,7 @@ func TestDecodeRegistry_Decode(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		r       DecodeRegistry
+		r       DecoderRegistry
 		args    args
 		wantErr bool
 	}{
@@ -61,7 +61,7 @@ func TestDecodeRegistry_Set(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		r    DecodeRegistry
+		r    DecoderRegistry
 		args args
 	}{
 		// TODO: Add test cases.
@@ -76,8 +76,8 @@ func TestDecodeRegistry_Set(t *testing.T) {
 func TestEncodeRegistry_Clone(t *testing.T) {
 	tests := []struct {
 		name string
-		r    EncodeRegistry
-		want EncodeRegistry
+		r    EncoderRegistry
+		want EncoderRegistry
 	}{
 		// TODO: Add test cases.
 	}
@@ -97,7 +97,7 @@ func TestEncodeRegistry_Encode(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		r       EncodeRegistry
+		r       EncoderRegistry
 		args    args
 		want    []byte
 		wantErr bool
@@ -125,7 +125,7 @@ func TestEncodeRegistry_Set(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		r    EncodeRegistry
+		r    EncoderRegistry
 		args args
 	}{
 		// TODO: Add test cases.

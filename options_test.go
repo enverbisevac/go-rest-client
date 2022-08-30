@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"errors"
 	"net/http"
 	"reflect"
 	"testing"
@@ -18,7 +17,7 @@ func TestWithBody(t *testing.T) {
 	}{
 		Title: "Some title",
 	}
-	base := RequestData[any]{}
+	base := RequestOption{}
 
 	got := WithBody(s)
 	got(&base)
@@ -27,7 +26,7 @@ func TestWithBody(t *testing.T) {
 }
 
 func TestWithHeaders(t *testing.T) {
-	base := RequestData[any]{}
+	base := RequestOption{}
 
 	input := http.Header{
 		Content: []string{string(ApplicationJSON)},
@@ -74,108 +73,6 @@ func TestWithUnmarshalFunc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := WithUnmarshalFunc(tt.args.f); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("WithUnmarshalFunc() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestRequestData_Decode(t *testing.T) {
-	type fields struct {
-		Body           any
-		Header         http.Header
-		encoder        Encoder
-		decoder        Decoder
-		MarshalFunc    MarshallFunc
-		UnmarshallFunc UnmarshallFunc
-	}
-	type args struct {
-		data []byte
-		v    *mockArticle
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &RequestData[mockArticle]{
-				Body:           tt.fields.Body,
-				Header:         tt.fields.Header,
-				encoder:        tt.fields.encoder,
-				decoder:        tt.fields.decoder,
-				MarshalFunc:    tt.fields.MarshalFunc,
-				UnmarshallFunc: tt.fields.UnmarshallFunc,
-			}
-			if err := r.Decode(tt.args.data, tt.args.v); (err != nil) != tt.wantErr {
-				t.Errorf("Decode() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestRequestData_Encode(t *testing.T) {
-	type fields struct {
-		Body        any
-		Header      http.Header
-		encoder     Encoder
-		MarshalFunc MarshallFunc
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		want    []byte
-		wantErr bool
-	}{
-		{
-			name: "happy path",
-			fields: fields{
-				Body: mockArticle{
-					Title:   "some title",
-					Content: "some content",
-				},
-				Header: nil,
-				encoder: &mockEncoder{
-					content: []byte("{\"title\":\"some title\",\"content\":\"some content\"}"),
-				},
-				MarshalFunc: nil,
-			},
-			want: []byte("{\"title\":\"some title\",\"content\":\"some content\"}"),
-		},
-		{
-			name: "encoder error",
-			fields: fields{
-				Body: mockArticle{
-					Title:   "some title",
-					Content: "some content",
-				},
-				Header: nil,
-				encoder: &mockEncoder{
-					err: errors.New("encoder error"),
-				},
-				MarshalFunc: nil,
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &RequestData[mockArticle]{
-				Body:        tt.fields.Body,
-				Header:      tt.fields.Header,
-				encoder:     tt.fields.encoder,
-				MarshalFunc: tt.fields.MarshalFunc,
-			}
-			got, err := r.Encode()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Encode() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Encode() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

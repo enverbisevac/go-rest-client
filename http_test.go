@@ -10,29 +10,38 @@ import (
 	"testing"
 )
 
-type MockHttp struct {
-	response *http.Response
-	err      error
+type mockRequestWrapper struct {
+	NewRequestFunc func(ctx context.Context, method, url string, body io.Reader) (*http.Request, error)
 }
 
-func (m *MockHttp) Do(request *http.Request) (*http.Response, error) {
-	return m.response, m.err
+func (m *mockRequestWrapper) NewRequestWithContext(ctx context.Context, method, url string,
+	body io.Reader) (*http.Request, error) {
+	return m.NewRequestFunc(ctx, method, url, body)
 }
 
-type MockReadCloserError struct {
+type mockHttp struct {
+	DoFunc func(request *http.Request) (*http.Response, error)
 }
 
-func (r *MockReadCloserError) Read(p []byte) (n int, err error) {
+func (m *mockHttp) Do(request *http.Request) (*http.Response, error) {
+	return m.DoFunc(request)
+}
+
+type mockReadCloserError struct {
+}
+
+func (r *mockReadCloserError) Read(p []byte) (n int, err error) {
 	return 0, errors.New("read error")
 }
 
-func (r *MockReadCloserError) Close() error {
+func (r *mockReadCloserError) Close() error {
 	return nil
 }
 
 func TestHttp_Request(t *testing.T) {
 	type fields struct {
-		Client Doer
+		RequestWrapper *mockRequestWrapper
+		Client         *mockHttp
 	}
 	type args struct {
 		ctx        context.Context
@@ -49,9 +58,13 @@ func TestHttp_Request(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "context is nil expect error",
+			name: "new request expect error",
 			fields: fields{
-				Client: &MockHttp{},
+				RequestWrapper: &mockRequestWrapper{
+					NewRequestFunc: func(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
+						return nil, errors.New("request error")
+					},
+				},
 			},
 			args: args{
 				ctx:        nil,
@@ -66,8 +79,13 @@ func TestHttp_Request(t *testing.T) {
 		{
 			name: "net call return error",
 			fields: fields{
-				Client: &MockHttp{
-					err: errors.New("network error"),
+				Client: &mockHttp{
+					DoFunc: func(request *http.Request) (*http.Response, error) {
+						return nil, errors.New("network error")
+					},
+				},
+				RequestWrapper: &mockRequestWrapper{
+					NewRequestFunc: http.NewRequestWithContext,
 				},
 			},
 			args: args{
@@ -83,12 +101,17 @@ func TestHttp_Request(t *testing.T) {
 		{
 			name: "empty method should work as GET",
 			fields: fields{
-				Client: &MockHttp{
-					response: &http.Response{
-						StatusCode:    200,
-						Body:          io.NopCloser(bytes.NewBufferString("")),
-						ContentLength: 0,
-						Header:        Header(WithContent(ApplicationJSON)),
+				RequestWrapper: &mockRequestWrapper{
+					NewRequestFunc: http.NewRequestWithContext,
+				},
+				Client: &mockHttp{
+					DoFunc: func(request *http.Request) (*http.Response, error) {
+						return &http.Response{
+							StatusCode:    200,
+							Body:          io.NopCloser(bytes.NewBufferString("")),
+							ContentLength: 0,
+							Header:        Header(WithContent(ApplicationJSON)),
+						}, nil
 					},
 				},
 			},
@@ -111,9 +134,14 @@ func TestHttp_Request(t *testing.T) {
 		{
 			name: "response Body error",
 			fields: fields{
-				Client: &MockHttp{
-					response: &http.Response{
-						Body: &MockReadCloserError{},
+				RequestWrapper: &mockRequestWrapper{
+					NewRequestFunc: http.NewRequestWithContext,
+				},
+				Client: &mockHttp{
+					DoFunc: func(request *http.Request) (*http.Response, error) {
+						return &http.Response{
+							Body: &mockReadCloserError{},
+						}, nil
 					},
 				},
 			},
@@ -131,7 +159,8 @@ func TestHttp_Request(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &Http{
-				Client: tt.fields.Client,
+				Client:         tt.fields.Client,
+				RequestWrapper: tt.fields.RequestWrapper,
 			}
 			got, err := h.Request(tt.args.ctx, tt.args.method, tt.args.requestURL, tt.args.body, tt.args.header)
 			if (err != nil) != tt.wantErr {
