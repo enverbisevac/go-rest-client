@@ -9,14 +9,25 @@ type config[T any] struct {
 	method     string
 	requestURL string
 	requester  interface {
-		Request(ctx context.Context, method string, requestURL string, body []byte,
+		Request(
+			ctx context.Context,
+			method string,
+			requestURL string,
+			body []byte,
 			header http.Header) (*Response, error)
 	}
 	encoder interface {
-		Encode(value any, contentType ContentType, marshalFunc MarshallFunc) ([]byte, error)
+		Encode(
+			value any,
+			contentType ContentType,
+			marshalFunc MarshallFunc) ([]byte, error)
 	}
 	decoder interface {
-		Decode(data []byte, val *T, contentType ContentType, unmarshallFunc UnmarshallFunc) error
+		Decode(
+			data []byte,
+			val *T,
+			contentType ContentType,
+			unmarshallFunc UnmarshallFunc) error
 	}
 }
 

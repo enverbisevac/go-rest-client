@@ -3,13 +3,9 @@ package rest
 import (
 	"net/http"
 	"reflect"
+	"runtime"
 	"testing"
 )
-
-type mockArticle struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
-}
 
 func TestWithBody(t *testing.T) {
 	s := struct {
@@ -39,41 +35,33 @@ func TestWithHeaders(t *testing.T) {
 }
 
 func TestWithMarshallFunc(t *testing.T) {
-	type args struct {
-		f MarshallFunc
+	base := RequestOption{}
+
+	input := func(v any) ([]byte, error) {
+		return nil, nil
 	}
-	tests := []struct {
-		name string
-		args args
-		want Option
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := WithMarshallFunc(tt.args.f); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("WithMarshallFunc() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+
+	got := WithMarshallFunc(input)
+	got(&base)
+
+	funcName1 := runtime.FuncForPC(reflect.ValueOf(input).Pointer()).Name()
+	funcName2 := runtime.FuncForPC(reflect.ValueOf(base.MarshalFunc).Pointer()).Name()
+
+	equals(t, funcName1, funcName2)
 }
 
 func TestWithUnmarshalFunc(t *testing.T) {
-	type args struct {
-		f UnmarshallFunc
+	base := RequestOption{}
+
+	input := func(data []byte, v any) error {
+		return nil
 	}
-	tests := []struct {
-		name string
-		args args
-		want Option
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := WithUnmarshalFunc(tt.args.f); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("WithUnmarshalFunc() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+
+	got := WithUnmarshalFunc(input)
+	got(&base)
+
+	funcName1 := runtime.FuncForPC(reflect.ValueOf(input).Pointer()).Name()
+	funcName2 := runtime.FuncForPC(reflect.ValueOf(base.UnmarshallFunc).Pointer()).Name()
+
+	equals(t, funcName1, funcName2)
 }

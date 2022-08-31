@@ -32,6 +32,9 @@ func (r EncoderRegistry) Clone() EncoderRegistry {
 type DecoderRegistry map[ContentType]UnmarshallFunc
 
 func (r DecoderRegistry) Decode(data []byte, object any, content Parser) error {
+	if object == nil || content == nil {
+		return nil
+	}
 	f, ok := r[content.Parse()]
 	if !ok {
 		return ErrUnmarshalerFuncNotFound
