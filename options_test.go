@@ -2,6 +2,8 @@ package rest
 
 import (
 	"net/http"
+	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -11,7 +13,7 @@ func TestWithBody(t *testing.T) {
 	}{
 		Title: "Some title",
 	}
-	base := requestData{}
+	base := RequestOption{}
 
 	got := WithBody(s)
 	got(&base)
@@ -20,7 +22,7 @@ func TestWithBody(t *testing.T) {
 }
 
 func TestWithHeaders(t *testing.T) {
-	base := requestData{}
+	base := RequestOption{}
 
 	input := http.Header{
 		Content: []string{string(ApplicationJSON)},
@@ -30,4 +32,36 @@ func TestWithHeaders(t *testing.T) {
 	got(&base)
 
 	equals(t, input, base.Header)
+}
+
+func TestWithMarshallFunc(t *testing.T) {
+	base := RequestOption{}
+
+	input := func(v any) ([]byte, error) {
+		return nil, nil
+	}
+
+	got := WithMarshallFunc(input)
+	got(&base)
+
+	funcName1 := runtime.FuncForPC(reflect.ValueOf(input).Pointer()).Name()
+	funcName2 := runtime.FuncForPC(reflect.ValueOf(base.MarshalFunc).Pointer()).Name()
+
+	equals(t, funcName1, funcName2)
+}
+
+func TestWithUnmarshalFunc(t *testing.T) {
+	base := RequestOption{}
+
+	input := func(data []byte, v any) error {
+		return nil
+	}
+
+	got := WithUnmarshalFunc(input)
+	got(&base)
+
+	funcName1 := runtime.FuncForPC(reflect.ValueOf(input).Pointer()).Name()
+	funcName2 := runtime.FuncForPC(reflect.ValueOf(base.UnmarshallFunc).Pointer()).Name()
+
+	equals(t, funcName1, funcName2)
 }

@@ -2,23 +2,39 @@ package rest
 
 import "net/http"
 
-type requestData struct {
-	Body   any
-	Header http.Header
+type RequestOption struct {
+	Body           any
+	Header         http.Header
+	MarshalFunc    MarshallFunc
+	UnmarshallFunc UnmarshallFunc
 }
 
-type Option func(r *requestData)
+type Option func(r *RequestOption)
 
-// WithBody option set body for request
+// WithBody option set Body for request
 func WithBody(body any) Option {
-	return func(r *requestData) {
-		r.Body = body
+	return func(d *RequestOption) {
+		d.Body = body
 	}
 }
 
 // WithHeaders option set headers for request
 func WithHeaders(header http.Header) Option {
-	return func(r *requestData) {
-		r.Header = header
+	return func(d *RequestOption) {
+		d.Header = header
+	}
+}
+
+// WithMarshallFunc option set function for encoding for some contentType
+func WithMarshallFunc(f MarshallFunc) Option {
+	return func(d *RequestOption) {
+		d.MarshalFunc = f
+	}
+}
+
+// WithUnmarshalFunc option set the function f for decoding for some contentType
+func WithUnmarshalFunc(f UnmarshallFunc) Option {
+	return func(d *RequestOption) {
+		d.UnmarshallFunc = f
 	}
 }

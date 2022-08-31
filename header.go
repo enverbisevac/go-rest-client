@@ -1,6 +1,9 @@
 package rest
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 const (
 	Content       = "Content-Type"
@@ -8,6 +11,15 @@ const (
 )
 
 type ContentType string
+
+func (t ContentType) Parse() ContentType {
+	content := DefaultContentType
+	if t != "" {
+		content = t
+	}
+	parts := strings.Split(string(content), ";")
+	return ContentType(strings.TrimSpace(parts[0]))
+}
 
 func (t ContentType) String() string {
 	return string(t)
